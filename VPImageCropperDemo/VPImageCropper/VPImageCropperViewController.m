@@ -8,7 +8,6 @@
 
 #import "VPImageCropperViewController.h"
 
-#define SCALE_FRAME_Y 100.0f
 #define BOUNDCE_DURATION 0.3f
 
 @interface VPImageCropperViewController ()
@@ -64,8 +63,6 @@
     [self.showImgView setMultipleTouchEnabled:YES];
     [self.showImgView setUserInteractionEnabled:YES];
     [self.showImgView setImage:self.originalImage];
-    [self.showImgView setUserInteractionEnabled:YES];
-    [self.showImgView setMultipleTouchEnabled:YES];
     
     // scale to fit the screen
     CGFloat oriWidth = self.cropFrame.size.width;
@@ -82,15 +79,13 @@
     [self.view addSubview:self.showImgView];
     
     self.overlayView = [[UIView alloc] initWithFrame:self.view.bounds];
-    self.overlayView.alpha = .5f;
+    self.overlayView.alpha = .6f;
     self.overlayView.backgroundColor = [UIColor blackColor];
     self.overlayView.userInteractionEnabled = NO;
     self.overlayView.autoresizingMask = UIViewAutoresizingFlexibleHeight | UIViewAutoresizingFlexibleWidth;
     [self.view addSubview:self.overlayView];
     
     self.ratioView = [[UIView alloc] initWithFrame:self.cropFrame];
-    self.ratioView.layer.borderColor = [UIColor yellowColor].CGColor;
-    self.ratioView.layer.borderWidth = 1.0f;
     self.ratioView.autoresizingMask = UIViewAutoresizingNone;
     [self.view addSubview:self.ratioView];
     
@@ -150,15 +145,66 @@
                                         0,
                                         self.overlayView.frame.size.width - self.ratioView.frame.origin.x - self.ratioView.frame.size.width,
                                         self.overlayView.frame.size.height));
-    // Top side of the ratio view
-    CGPathAddRect(path, nil, CGRectMake(0, 0,
-                                        self.overlayView.frame.size.width,
-                                        self.ratioView.frame.origin.y));
-    // Bottom side of the ratio view
-    CGPathAddRect(path, nil, CGRectMake(0,
-                                        self.ratioView.frame.origin.y + self.ratioView.frame.size.height,
-                                        self.overlayView.frame.size.width,
-                                        self.overlayView.frame.size.height - self.ratioView.frame.origin.y + self.ratioView.frame.size.height));
+
+    CGMutablePathRef topOfRatioViewPath = CGPathCreateMutable();
+    
+    // start at origin
+    CGPathMoveToPoint (topOfRatioViewPath, nil,
+                       self.ratioView.frame.origin.x,
+                       self.overlayView.frame.origin.y);
+    // add top edge
+    CGPathAddLineToPoint (topOfRatioViewPath, nil,
+                          self.ratioView.frame.origin.x + self.ratioView.frame.size.width,
+                          self.overlayView.frame.origin.y);
+    // add right edge
+    CGPathAddLineToPoint(topOfRatioViewPath, nil,
+                         self.ratioView.frame.origin.x + self.ratioView.frame.size.width,
+                         self.ratioView.frame.origin.y + self.ratioView.frame.size.height / 2.0);
+    //add bottom edge
+    CGPathAddArcToPoint(topOfRatioViewPath, nil,
+                        self.ratioView.frame.origin.x + self.ratioView.frame.size.width,
+                        self.ratioView.frame.origin.y,
+                        self.ratioView.frame.origin.x + self.ratioView.frame.size.width / 2.0,
+                        self.ratioView.frame.origin.y,
+                        self.ratioView.frame.size.width / 2.0);
+    CGPathAddArcToPoint(topOfRatioViewPath, nil,
+                        self.ratioView.frame.origin.x,
+                        self.ratioView.frame.origin.y,
+                        self.ratioView.frame.origin.x,
+                        self.ratioView.frame.origin.y + self.ratioView.frame.size.height / 2.0,
+                        self.ratioView.frame.size.height / 2.0);
+    CGPathCloseSubpath (topOfRatioViewPath);
+    
+    CGPathAddPath(path, nil, topOfRatioViewPath);
+    
+
+    
+    CGMutablePathRef bottomOfRatioViewPath = CGPathCreateMutable();
+    CGPathMoveToPoint(bottomOfRatioViewPath, nil,
+                      self.ratioView.frame.origin.x,
+                      self.overlayView.frame.size.height / 2.0);
+    CGPathAddArcToPoint(bottomOfRatioViewPath, nil,
+                        self.ratioView.frame.origin.x,
+                        self.ratioView.frame.origin.y + self.ratioView.frame.size.height,
+                        self.ratioView.frame.origin.x + self.ratioView.frame.size.width / 2.0,
+                        self.ratioView.frame.origin.y + self.ratioView.frame.size.height,
+                        self.ratioView.frame.size.height / 2.0);
+    CGPathAddArcToPoint(bottomOfRatioViewPath, nil,
+                        self.ratioView.frame.origin.x + self.ratioView.frame.size.width,
+                        self.ratioView.frame.origin.y + self.ratioView.frame.size.height,
+                        self.ratioView.frame.origin.x + self.ratioView.frame.size.width,
+                        self.ratioView.frame.origin.y + self.ratioView.frame.size.height / 2.0,
+                        self.ratioView.frame.size.width / 2.0);
+    CGPathAddLineToPoint(bottomOfRatioViewPath, nil,
+                         self.ratioView.frame.origin.x + self.ratioView.frame.size.width,
+                         self.overlayView.frame.size.height);
+    CGPathAddLineToPoint(bottomOfRatioViewPath, nil,
+                         self.ratioView.frame.origin.x,
+                         self.overlayView.frame.size.height);
+    CGPathCloseSubpath(bottomOfRatioViewPath);
+    
+    CGPathAddPath(path, nil, bottomOfRatioViewPath);
+    
     maskLayer.path = path;
     self.overlayView.layer.mask = maskLayer;
     CGPathRelease(path);
